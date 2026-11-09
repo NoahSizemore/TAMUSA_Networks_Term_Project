@@ -315,6 +315,7 @@ The application protocol carries no length prefixes, no checksums and no
 sequence numbers of its own, because the transport contract already provides
 message boundaries, ordering, exactly-once delivery and integrity. 
 
+The quiz application uses a message-based protocol to communicate between the host and clients. Clients join the game, receive questions, submit answers, and receive their results and updated rankings. The host manages the game, keeps track of scores, and handles communication with each player. Separating the application protocol from the transport layer allows the same quiz application to run using either the stub or reliable transport. During testing, both implementations passed the automated application checks. However, the reliable transport handled packet loss through retransmissions and supported better detection of disconnected clients, while the stub had limitations when clients attempted to rejoin.
 ## Appendices
 
 * `documentation/report/appendix_checklist_2026-11-09_1208.txt` — raw
