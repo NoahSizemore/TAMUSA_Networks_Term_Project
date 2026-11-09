@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# NOTE: documentation/report/appendix_checklist_*.txt and *.cast are NOT
+# ignored on purpose.  The raw conformance output and the terminal recording
+# are both required parts of the submission, so they belong in the repository.

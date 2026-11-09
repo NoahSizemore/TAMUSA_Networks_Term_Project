@@ -1,0 +1,53 @@
+conformance checklist for transport.py
+python 3.14.3 on win32
+started 2026-11-09 10:56:11
+
+============================================================================================================
+TRANSPORT_LOSS=0   TRANSPORT_DELAY=0   TRANSPORT_WINDOW=1
+============================================================================================================
+[PASS] case 1  a 1-byte message                         1 bytes arrived unchanged                        0.05s
+[PASS] case 2  a 1024-byte message                      1024 bytes arrived unchanged                     0.06s
+[PASS] case 3  a 1025-byte message raises ValueError    ValueError raised, nothing sent, 1024 still ok   0.56s
+[PASS] case 4  1000 messages back to back               1000 in order, once each, 0 resent               0.03s
+[PASS] case 5  three peers connected at once            3 peers, 18 messages, none crossed over          0.12s
+[PASS] case 6  recv(timeout=0.05) with no traffic       None after 61.6 ms mean (61.2-61.9)              0.31s
+[PASS] case 7  a peer that stops answering              closed after 4.6 s (no acknowledgment for sequen); 2 peers kept working   4.60s
+[SKIP] case 8  stats(peer) against another cluster      no --peer given; needs a VM on another cluster   0.00s
+
+============================================================================================================
+TRANSPORT_LOSS=0.1   TRANSPORT_DELAY=0   TRANSPORT_WINDOW=1
+============================================================================================================
+[PASS] case 1  a 1-byte message                         1 bytes arrived unchanged                        0.67s
+[PASS] case 2  a 1024-byte message                      1024 bytes arrived unchanged                     0.06s
+[PASS] case 3  a 1025-byte message raises ValueError    ValueError raised, nothing sent, 1024 still ok   0.76s
+[PASS] case 4  1000 messages back to back               1000 in order, once each, 226 resent             7.30s
+[PASS] case 5  three peers connected at once            3 peers, 18 messages, none crossed over          0.93s
+[PASS] case 6  recv(timeout=0.05) with no traffic       None after 61.9 ms mean (60.6-62.8)              0.31s
+[PASS] case 7  a peer that stops answering              closed after 4.6 s (no acknowledgment for sequen); 2 peers kept working   4.62s
+[SKIP] case 8  stats(peer) against another cluster      no --peer given; needs a VM on another cluster   0.00s
+
+============================================================================================================
+TRANSPORT_LOSS=0.2   TRANSPORT_DELAY=0   TRANSPORT_WINDOW=1
+============================================================================================================
+[PASS] case 1  a 1-byte message                         1 bytes arrived unchanged                        0.06s
+[PASS] case 2  a 1024-byte message                      1024 bytes arrived unchanged                     0.06s
+[PASS] case 3  a 1025-byte message raises ValueError    ValueError raised, nothing sent, 1024 still ok   0.60s
+[PASS] case 4  1000 messages back to back               1000 in order, once each, 569 resent            41.56s
+[PASS] case 5  three peers connected at once            3 peers, 18 messages, none crossed over          5.93s
+[PASS] case 6  recv(timeout=0.05) with no traffic       None after 61.6 ms mean (60.3-63.4)              0.31s
+[PASS] case 7  a peer that stops answering              closed after 13.1 s (no acknowledgment for sequen); 2 peers kept working  13.07s
+[SKIP] case 8  stats(peer) against another cluster      no --peer given; needs a VM on another cluster   0.00s
+
+summary  (rows are cases, columns are TRANSPORT_LOSS)
+------------------------------------------------------------------------------------------------------------
+case                                                loss=0      loss=0.1      loss=0.2
+1  a 1-byte message                                   PASS          PASS          PASS
+2  a 1024-byte message                                PASS          PASS          PASS
+3  a 1025-byte message raises ValueError              PASS          PASS          PASS
+4  1000 messages back to back                         PASS          PASS          PASS
+5  three peers connected at once                      PASS          PASS          PASS
+6  recv(timeout=0.05) with no traffic                 PASS          PASS          PASS
+7  a peer that stops answering                        PASS          PASS          PASS
+8  stats(peer) against another cluster                SKIP          SKIP          SKIP
+------------------------------------------------------------------------------------------------------------
+0 failure(s)
