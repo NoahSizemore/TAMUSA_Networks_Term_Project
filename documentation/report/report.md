@@ -3,14 +3,11 @@
 **CSCI 4306 Team Project** — Noah Sizemore (transport) and William Hale (application)
 Protocol specification: `documentation/protocol.md`, version 1
 
-> **Status: draft.** Everything below is written, but three things must be
-> filled in from a run on CloudLab before this is submitted, and each is
-> marked **TODO** where it belongs:
-> 1. the conformance table in §3 — paste from
->    `documentation/report/appendix_checklist_<date>.txt`, produced by
->    `scripts/run_checklist.sh` **on the VM**, not from a laptop;
-> 2. case 8's numbers in §3, which need a second cluster;
-> 3. §4's "over the stub" paragraph, which wants one honest observation from
+> **Status: draft.** Everything below is written, and cases 1–7 and the
+> 100-message measurement have been run (macOS development machine,
+> 2026-11-09). Two things remain, each marked **TODO** where it belongs:
+> 1. case 8's numbers in §3, which need a second CloudLab cluster (Linux);
+> 2. §4's "over the stub" paragraph, which wants one honest observation from
 >    actually watching it at `TRANSPORT_LOSS=0.1`.
 >
 > Export to PDF when those are in: `pandoc report.md -o report.pdf`.
@@ -136,7 +133,7 @@ retransmitting into a receiver that will never speak again.
 the same sequence number with no acknowledgment, the peer is reported closed:
 `peers()` stops listing it and `stats(peer)["state"]` reads `closed`. With
 backoff from a typical measured RTO this is about five seconds on a local path
-and about eleven at `TRANSPORT_LOSS=0.2`. The count is what makes case 7
+and up to about fifteen under loss (4.6 s to 14.8 s measured). The count is what makes case 7
 deterministic, which is why it is a fixed number and not a wall-clock timeout.
 
 **Loss and delay simulation.** `TRANSPORT_LOSS` is applied to *every* datagram
@@ -160,9 +157,9 @@ at all three loss settings, but case 4 pays for it at high loss:
 
 | `TRANSPORT_LOSS` | Window 1: resends / time | Window 8: resends / time |
 |---|---|---|
-| 0 | 0 / 0.03 s | 0 / 0.02 s |
-| 0.1 | 226 / 7.3 s | 794 / 10.1 s |
-| 0.2 | 569 / 41.6 s | 2017 / 204.7 s |
+| 0 | 0 / 0.06 s | 0 / 0.05 s |
+| 0.1 | 226 / 6.2 s | 828 / 9.6 s |
+| 0.2 | 547 / 44.2 s | 2264 / 261.7 s |
 
 That is Go-Back-N behaving as designed. A single loss retransmits the entire
 window rather than the one message that went missing, so the retransmissions
@@ -181,14 +178,14 @@ On the 100-message measurement, from `src/bench_burst.py`:
 
 | One-way delay | Measured round trip | Window 1 | Window 8 | Speed-up |
 |---------------|--------------------|----------|----------|----------|
-| 0 ms | 0.4 ms | 0.007 s | 0.007 s | 1.0× |
-| 17.5 ms | **TODO** ms | **TODO** s | **TODO** s | **TODO**× |
+| 0 ms | 0.1 ms | 0.011 s | 0.012 s | 0.9× |
+| 17.5 ms | 42.0 ms | 4.261 s | 0.548 s | **7.8×** |
 
-**TODO:** rerun on the VM and paste. On the development machine (Windows,
-which rounds every timed wait up to 15.6 ms and so inflated the 35 ms path to
-62 ms) the figures were 6.16 s against 0.774 s, a **8.0× speed-up**, against
-the 7.6× the project description predicts. The shape is right; the absolute
-numbers must come from Linux.
+Measured on the macOS development machine (Python 3.14.7, loss 0, no
+retransmissions). The 35 ms path measured 42 ms because the delay queue is
+only drained when `send`/`recv` run, which adds a few milliseconds per leg.
+The 7.8× speed-up is close to the 7.6× the project description predicts. With
+no delay there is nothing to pipeline, so the window gains nothing (0.9×).
 
 ## 3. Conformance checklist results
 
@@ -200,9 +197,10 @@ several `Transport` objects polled in turn, because the contract forbids
 threads, and a blocking `connect` in one process would deadlock against a host
 in the same process. The raw output is the appendix.
 
-The table below is a clean run on the development machine (Windows, Python
-3.14). **TODO: replace with the run from the CloudLab VM**: the numbers in the
-notes change on Linux, and case 8 cannot run here at all.
+The table below is a clean run on the development machine (macOS, Darwin
+27.2.0 arm64, Python 3.14.7), from
+`documentation/report/appendix_checklist_2026-11-09_1208.txt`. Case 8 cannot
+run here at all; it needs a VM on a second CloudLab cluster.
 
 | # | Case | loss 0 | loss 0.1 | loss 0.2 |
 |---|------|--------|----------|----------|
@@ -224,19 +222,22 @@ Notes on individual cases, to be checked against the VM run:
   1024 bytes successfully, to show the limit is a boundary and not a wall.
 * **Case 4** checks order and exactly-once delivery, not just the count, so a
   transport that delivered all 1000 out of order would fail it. Retransmissions
-  rose with the loss setting as expected: 0 at loss 0, 226 at 0.1 and 569 at
+  rose with the loss setting as expected: 0 at loss 0, 226 at 0.1 and 547 at
   0.2 — the last close to the 562 that a 0.64 per-round success rate predicts
-  (0.8 for the data, 0.8 for the acknowledgment). The run took 0.03 s, 7.3 s
-  and 41.6 s respectively; nearly all of the last figure is time spent waiting
+  (0.8 for the data, 0.8 for the acknowledgment). The run took 0.06 s, 6.2 s
+  and 44.2 s respectively; nearly all of the last figure is time spent waiting
   out retransmission timeouts, and it is the one case whose duration is set by
   the loss setting rather than by the code.
-* **Case 6** returned in 61.7 ms on the development machine against a 50 ms
-  request. That is the Windows scheduler quantum of 15.6 ms, not the
-  transport: `select()` was asked for 50 ms exactly, once. **TODO:** confirm
-  the Linux figure, which should be within a millisecond of 50.
-* **Case 7** declared the silent peer closed after 4.6 s at loss 0 and 0.1,
-  and 13.1 s at 0.2 — eight retransmissions with the RTO doubling each time,
-  and at 0.2 some of the retransmissions are themselves lost. It is driven by
+* **Case 6** returned in 53–54 ms on average (50.3–55.2 ms across all runs)
+  against a 50 ms request. `select()` was asked for 50 ms exactly, once; the
+  extra few milliseconds are the macOS timer coalescing a wake-up, not the
+  transport. (An earlier Windows run gave 61.7 ms, its 15.6 ms scheduler
+  quantum.)
+* **Case 7** declared the silent peer closed after 4.6 s at loss 0 and 0.2,
+  and 14.8 s at 0.1 — eight retransmissions with the RTO doubling each time.
+  Under loss the time depends on which datagrams happen to be dropped: when
+  the last acknowledgments before the peer goes silent are lost, the RTO has
+  already backed off and the eight retransmissions take longer. It is driven by
   having one endpoint simply stop calling `send` and `recv`, which is the cleanest possible test of clause 5: nothing else about
   that peer changes, and it stops acknowledging because the contract says a
   transport whose application stops calling it stops working.
@@ -260,8 +261,9 @@ The host sends one question to each client, scores the answers on correctness
 and on speed, and broadcasts a scoreboard showing both the raw arrival order
 and the order adjusted for each client's path. `src/test_quiz.py` runs the
 whole thing as four real processes, kills a client, restarts it, and checks
-what each process printed; it passes 11 of 11 over the real transport and
-11 of 11 over the stub.
+what each process printed; it passes 11 of 11 over the real transport,
+12 of 12 over the real transport at `TRANSPORT_LOSS=0.1` (22 resends on the
+busiest peer), and 11 of 11 over the stub.
 
 **Over the stub at `TRANSPORT_LOSS=0.1`.** The stub is 150 lines with no
 checksum, no sequence numbers and no retransmission: `send` is one `sendto`
@@ -310,9 +312,11 @@ message boundaries, ordering, exactly-once delivery and integrity.
 
 ## Appendices
 
-* `documentation/report/appendix_checklist_<date>.txt` — raw conformance
-  output at all three loss settings, with `hostname`, kernel, Python version
-  and the `ping` the case-8 comparison is against. **TODO:** generate on the
-  VM with `scripts/run_checklist.sh`.
+* `documentation/report/appendix_checklist_2026-11-09_1208.txt` — raw
+  conformance output at all three loss settings, with `hostname`, kernel and
+  Python version. **TODO:** add the case-8 run (with its `ping`) from
+  CloudLab via `scripts/run_checklist.sh HOST:9100 PING_MS`.
+* `documentation/report/appendix_checklist_window8_2026-11-09.txt` — the same
+  checklist at `TRANSPORT_WINDOW=8`, the source of the table in §2.
 * `documentation/report/demo_<date>.cast` — the asciinema recording.
   **TODO:** record with `scripts/record_demo.sh` 
