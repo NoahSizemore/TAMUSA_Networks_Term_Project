@@ -211,7 +211,7 @@ run here at all; it needs a VM on a second CloudLab cluster.
 | 5 | three peers connected at once | PASS | PASS | PASS |
 | 6 | `recv(timeout=0.05)` with no traffic | PASS | PASS | PASS |
 | 7 | a peer that stops answering | PASS | PASS | PASS |
-| 8 | `stats(peer)` against another cluster | PASS | PASS | Fail |
+| 8 | `stats(peer)` against another cluster | Fail | PASS | Fail |
 
 ```
 Notes on individual cases, to be checked against the VM run:
@@ -241,8 +241,12 @@ Notes on individual cases, to be checked against the VM run:
   having one endpoint simply stop calling `send` and `recv`, which is the cleanest possible test of clause 5: nothing else about
   that peer changes, and it stops acknowledging because the contract says a
   transport whose application stops calling it stops working.
-* **Case 8**The transport was tested under 0%, 10%, and 20% simulated packet loss. Overall, 22 out of 24 conformance checks passed. All seven functional and reliability checks passed at every loss level. The transport successfully delivered 1,000 messages in order without duplicates at each loss level, requiring 0 retransmissions at 0% loss, 211 at 10% loss, and 569 at 20% loss.
-The only failures occurred in Case 8, which compares measured RTT against a reference ping value. The measured RTT values were 0.17 ms, 0.61 ms, and 0.31 ms, respectively. The 0% and 20% results fell below the configured acceptable range of 0.50–2.00 ms. These results were obtained through local testing, so a separate test between two CloudLab machines is still needed to evaluate actual cross-cluster RTT.
+* **Case 8**The transport was tested under 0%, 10%, and 20% simulated packet loss. Overall, 22 out of 24 conformance checks passed.
+All seven functional and reliability checks passed at every loss level.
+The transport successfully delivered 1,000 messages in order without duplicates at each loss level, requiring 0 retransmissions at 0% loss, 211 at 10% loss, and 569 at 20% loss.
+The only failures occurred in Case 8, which compares measured RTT against a reference ping value. The measured RTT values were 0.17 ms, 0.61 ms, and 0.31 ms, respectively.
+The 0% and 20% results fell below the configured acceptable range of 0.50–2.00 ms.
+These results were obtained through local testing, so a separate test between two CloudLab machines is still needed to evaluate actual cross-cluster RTT.
 ```
 
 ## 4. The application, over the stub and over the real transport
