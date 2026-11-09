@@ -211,7 +211,7 @@ run here at all; it needs a VM on a second CloudLab cluster.
 | 5 | three peers connected at once | PASS | PASS | PASS |
 | 6 | `recv(timeout=0.05)` with no traffic | PASS | PASS | PASS |
 | 7 | a peer that stops answering | PASS | PASS | PASS |
-| 8 | `stats(peer)` against another cluster | PASS | PASS | PASS |
+| 8 | `stats(peer)` against another cluster | PASS | PASS | Fail |
 
 ```
 Notes on individual cases, to be checked against the VM run:
